@@ -8,8 +8,11 @@ const defaultRateLimit = 50;
 const defaultStatsInterval = 300;
 const defaultPriority = 5;
 
-
-// Constructor
+/**
+ * Qyu
+ * @constructor
+ * @param {object} 
+ */
 function Qyu(opts){
   this.jobsQueue = [];
   this.runningJobs = [];
@@ -24,21 +27,24 @@ function Qyu(opts){
   }
 
   if (typeof opts.statsInterval === 'number' && opts.statsInterval !== null) {
-    this.statsInterval = opts.statsInterval;
+    this.statsIntervalDelay = opts.statsInterval;
   } else {
-    this.statsInterval = defaultStatsInterval
-    console.log("Wrong format for statsInterval, setting to default (" + this.statsInterval + ")");
+    this.statsIntervalDelay = defaultStatsInterval
+    console.log("Wrong format for statsInterval, setting to default (" + this.statsIntervalDelay + ")");
   }
 }
 
 // Add events methods to Qyu
 util.inherits(Qyu, events.EventEmitter);
 
-// Qyu control
+/**
+ * Pause queue - no new job execution
+ * @return {Promise} resolved when queue has paused (no jobs being processed)
+ */
 Qyu.prototype.pause = async function () {
   console.log("Pausing queue...");
   return new Promise((resolve, reject) => {
-    this._pauseSendStats();
+    _pauseSendStats(this);
     this.isQueueStarted = false;
     resolve();
 
@@ -46,6 +52,10 @@ Qyu.prototype.pause = async function () {
   });
 };
 
+/**
+ * Start queue
+ * @return {Promise} resolved when queue has started (first time) or unpaused
+ */
 Qyu.prototype.start = function () {
   console.log("Starting queue...");
   return new Promise((resolve,reject) => {
@@ -53,37 +63,20 @@ Qyu.prototype.start = function () {
       console.log("Queue already started");
       reject("Queue already started");
     } else {
-      this._startSendStats(this.statsInterval); 
+      _startSendStats(this); 
       this.isQueueStarted = true;
-      this._runLoop();
+      _processNext(this);
       resolve();
     }
   });
 };
 
-// Qyu stat update
-Qyu.prototype._startSendStats = function(delay){
-  this.statsInterval = setInterval(() => {
-    this._updateStats();
-  }, delay);
-}
 
-Qyu.prototype._updateStats = function(delay){
-  this.emit('stats',({nbJobsPerSecond:4}));
-}
-
-Qyu.prototype._pauseSendStats = function(){
-  clearInterval(this.statsInterval); 
-}
-
-
-// Qyu methods
-Qyu.prototype._getId = function(){
-  this.ids++;
-  return this.ids;
-}
-
-
+/**
+ * Push a new job to the queue
+ *
+ * @return {number} id of the job queued
+ */
 Qyu.prototype.push = function (job, priority) {
   var prio;
 
@@ -99,16 +92,20 @@ Qyu.prototype.push = function (job, priority) {
     console.log("Wrong format or no prio specified, setting to default (" + prio + ")");
   }
 
+  var id = _getId(this);
+  console.log("Pushing a new job with id " + id + " with priority "+ prio);
 
-  // TODO PUSH AT THE RIGHT PLACE
-  var id = this._getId();
-  console.log("Pushing a new job with id " + id);
   this.jobsQueue.push({
                         id:id,
                         prio: prio,
                         func:job
                       });
 
+  this.jobsQueue.sort(_prioCompare);
+
+  _processNext(this);
+
+  return id;
 };
 
 Qyu.prototype.wait = async function(id) {
@@ -121,44 +118,60 @@ Qyu.prototype.cancel = function (id) {
 };
 
 
-Qyu.prototype._pauseAllJobs = function(){
+// Internal functions
+
+// Qyu stat update
+function _startSendStats(qyu){
+  qyu.statInterval = setInterval(() => {
+    _updateStats(qyu);
+  }, qyu.statsIntervalDelay);
+}
+
+function _updateStats(qyu){
+  qyu.emit('stats',({nbJobsPerSecond:4}));
+}
+
+function _pauseSendStats(qyu){
+  clearInterval(qyu.statInterval); 
+}
+
+function _getId(qyu){
+  qyu.ids++;
+  return qyu.ids;
+}
+
+function _pauseAllJobs(){
  // return new Promise
 };
 
-// Qyu main loop
-Qyu.prototype._runLoop = async function() {
+function _prioCompare(a,b) {
+  if (a.prio < b.prio)
+    return -1;
+  if (a.prio > b.prio)
+    return 1;
+  return 0;
+}
+
+
+async function _processNext(qyu) {
   
-  while(this.isQueueStarted){
-    var job = this.jobsQueue.shift();
-    if(!job && this.jobsQueue.length === 0){
-      //console.log("No more job to process");
-      //this.emit('drain');
+  if(qyu.isQueueStarted){
+    var job = qyu.jobsQueue.shift();
+    if(!job && qyu.jobsQueue.length === 0){
+      console.log("No more job to process");
+      qyu.emit('drain');
     } else {
        try {
         result = await job.func();
         console.log("Job " + job.id + " has been executed");
-        this.emit('done', ({id:job.id, result:result}));
-
-        } catch (err) {
+        qyu.emit('done', ({id:job.id, result:result}));
+      } catch (err) {
         console.log("Error during job " + job.id + " execution")
-        this.emit('error', ({id:job.id, error:err}));
-        }
-        /*
-new Promise((resolve,reject) => {
-          try {
-            result = job.func();
-            console.log("Job " + job.id + " has been executed");
-            this.emit('done', ({id:job.id, result:result}));
-            resolve();
-          } catch (err) {
-            console.log("Error during job " + job.id + " execution")
-            this.emit('error', ({id:job.id, error:err}));
-            reject();
-          }
-      });*/
+        qyu.emit('error', ({id:job.id, error:err}));
+      }
+      _processNext(qyu);
     }
   }
-
 };
 
 
