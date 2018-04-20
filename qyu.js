@@ -112,7 +112,7 @@ Qyu.prototype.push = function (job, priority) {
 };
 
 Qyu.prototype.wait = async function(id) {
-  this.on()
+ // this.on()
 };
 
 
@@ -126,7 +126,7 @@ Qyu.prototype._pauseAllJobs = function(){
 };
 
 // Qyu main loop
-Qyu.prototype._runLoop = function() {
+Qyu.prototype._runLoop = async function() {
   
   while(this.isQueueStarted){
     var job = this.jobsQueue.shift();
@@ -134,7 +134,17 @@ Qyu.prototype._runLoop = function() {
       //console.log("No more job to process");
       //this.emit('drain');
     } else {
-      new Promise((resolve,reject) => {
+       try {
+        result = await job.func();
+        console.log("Job " + job.id + " has been executed");
+        this.emit('done', ({id:job.id, result:result}));
+
+        } catch (err) {
+        console.log("Error during job " + job.id + " execution")
+        this.emit('error', ({id:job.id, error:err}));
+        }
+        /*
+new Promise((resolve,reject) => {
           try {
             result = job.func();
             console.log("Job " + job.id + " has been executed");
@@ -145,9 +155,10 @@ Qyu.prototype._runLoop = function() {
             this.emit('error', ({id:job.id, error:err}));
             reject();
           }
-      });
+      });*/
     }
   }
+
 };
 
 
