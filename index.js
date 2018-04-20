@@ -34,14 +34,14 @@ q.on('stats', ({ nbJobsPerSecond }) => {
     3,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
   ); // returns the internal id
 
-const id2 = q.push(
-    job, // function to execute
-    5,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
-  ); // returns the internal id
-const id3 = q.push(
-    job, // function to execute
-    1,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
-  ); // returns the internal id
+  const id2 = q.push(
+      job, // function to execute
+      5,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
+    ); // returns the internal id
+  const id3 = q.push(
+      job, // function to execute
+      1,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
+    ); // returns the internal id
 
 
   await q.pause(); // returns a promise resolved when `q` has paused (no jobs being processed)

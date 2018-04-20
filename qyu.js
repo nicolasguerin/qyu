@@ -47,8 +47,6 @@ Qyu.prototype.pause = async function () {
     _pauseSendStats(this);
     this.isQueueStarted = false;
     resolve();
-
-   // await this._pauseAllJobs();
   });
 };
 
@@ -109,7 +107,7 @@ Qyu.prototype.push = function (job, priority) {
 };
 
 Qyu.prototype.wait = async function(id) {
- // this.on()
+ //return await ;
 };
 
 
@@ -140,10 +138,6 @@ function _getId(qyu){
   return qyu.ids;
 }
 
-function _pauseAllJobs(){
- // return new Promise
-};
-
 function _prioCompare(a,b) {
   if (a.prio < b.prio)
     return -1;
@@ -157,6 +151,7 @@ async function _processNext(qyu) {
   
   if(qyu.isQueueStarted){
     var job = qyu.jobsQueue.shift();
+
     if(!job && qyu.jobsQueue.length === 0){
       console.log("No more job to process");
       qyu.emit('drain');
