@@ -1,0 +1,21 @@
+{
+  "name": "qyu.js",
+  "description": "Queue library",
+  "keywords": [
+    "queue",
+    "async"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "build": "grunt",
+    "test": "mocha"
+  },
+  "version": "0.0.1",
+  "main": "index.js"
+}
