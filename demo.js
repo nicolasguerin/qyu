@@ -1,5 +1,5 @@
 
-const qyu = require('qyu');
+const qyu = require('./qyu');
 
 const q = new qyu({
   rateLimit: 10, // maximum number of jobs being processed at the same time
@@ -45,7 +45,7 @@ q.on('stats', ({ nbJobsPerSecond }) => {
   await q.pause(); // returns a promise resolved when `q` has paused (no jobs being processed)
   await q.start(); // returns a promise resolved when `q` has started (first time) or unpaused
 
- const res = await q.wait(id); // resolves when the job is complete with the job result
+// const res = await q.wait(id); // resolves when the job is complete with the job result
 })();
 
 

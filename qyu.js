@@ -21,9 +21,10 @@ const maxPriority = 10;
  */
 function Qyu(opts){
   this.jobsQueue = [];
-  this.runningJobs = [];
+  this.numberOfProcessedJobs = 0;
   this.ids = 0;
   this.isQueueStarted = false;
+  this.startDate;
 
   if (typeof opts.rateLimit === 'number' && opts.rateLimit !== null) {
     this.rateLimit = opts.rateLimit;
@@ -189,6 +190,7 @@ Qyu.prototype.cancel = function (id) {
  * @param {object} qyu instance
  */
 function _startSendStats(qyu){
+  qyu.startDate = new Date();
   qyu.statInterval = setInterval(() => {
     _updateStats(qyu);
   }, qyu.statsIntervalDelay);
@@ -199,7 +201,12 @@ function _startSendStats(qyu){
  * @param {object} qyu instance
  */
 function _updateStats(qyu){
-  qyu.emit('stats',({nbJobsPerSecond:4}));
+  var duration = new Date() - qyu.startDate;
+  console.log("duration " + duration + " number " +qyu.numberOfProcessedJobs);
+  var nbJobsPerSecond = qyu.numberOfProcessedJobs / (duration / 1000);
+
+  qyu.emit('stats',({nbJobsPerSecond: nbJobsPerSecond }));
+
 }
 
 /**
@@ -251,6 +258,7 @@ async function _processNext(qyu) {
     
        try {
         result = await job.func();
+        qyu.numberOfProcessedJobs++;
         console.log("Job " + job.id + " has been executed");
         qyu.emit('done', ({id:job.id, result:result}));
       } catch (err) {
