@@ -1,6 +1,7 @@
 # qyu
 
 In-memory queue library in JavaScript, with maximum processing jobs limit and recurrent stats.
+You can use demo.js as an example.
 
 ## Installation
 
@@ -23,7 +24,9 @@ npm test
 
 ## API description
 
-### Initialisation
+### Initialisation and control
+
+#### Create a Qyu
 
 How to import module, create and initialise a new 'Qyu'.
 It could take several parameters, otherwise values are set to default.
@@ -40,13 +43,13 @@ const q = new qyu({
 });
 ```
 
-### Pushing a job
+#### Pushing a job
 
 How to push any kind of function into the 'Qyu'. 
 It takes two parameters. Return value is a unique job id.
 
 * job (mandatory) - A function that will be asynchronously executed.
-* priority (default value : 5) - Optional priority, from 1 to 10, 1 being the highest priority.
+* priority (default value : 5) - Optional priority, from 1 to 10, 1 being the highest priority. If value specified above 10, value is set to the lowest priority 10.
 
 ```js
 const id = q.push(
@@ -55,7 +58,7 @@ const id = q.push(
   ); // returns the internal id
 ```
 
-### Start the 'Qyu'
+#### Start the 'Qyu'
 
 How to start processing jobs that have been pushed into the 'Qyu'.
 It returns a promise resolved when 'q' has started (first time) or unpaused.
@@ -64,7 +67,7 @@ It returns a promise resolved when 'q' has started (first time) or unpaused.
 await q.start(); // returns a promise resolved when `q` has started (first time) or unpaused
 ```
 
-### Pause the 'Qyu'
+#### Pause the 'Qyu'
 
 How to pause jobs processing.
 It returns a promise resolved when 'q' has paused (no jobs being processed).
@@ -73,7 +76,7 @@ It returns a promise resolved when 'q' has paused (no jobs being processed).
 await q.pause(); // returns a promise resolved when `q` has paused (no jobs being processed)
 ```
 
-### Wait for a job to complete
+#### Wait for a job to complete
 
 How to wait for a job to complete.
 A promise resolves when the job is complete with the job result.
@@ -81,6 +84,7 @@ A promise resolves when the job is complete with the job result.
 ```js
 const res = await q.wait(id); // resolves when the job is complete with the job result
 ```
+
 
 ### Qyu events
 
@@ -121,7 +125,51 @@ Event thrown reccurently depending on 'statsInterval', giving number of jobs pro
 
 ```js
 q.on('stats', ({ nbJobsPerSecond }) => {
-  console.log(`${nbJobsPerSecond} jobs/s processed`)
+  console.log(`${nbJobsPerSecond} jobs/s processed`);
 });
 ```
+
+
+### Qyu data exposed
+
+#### Get rate limit
+
+Returns the rate limit set at initialisation.
+
+```js
+var limit = q.getRateLimit(); // returns the rate limit set at initialisation
+```
+
+#### Get stats interval
+
+Returns the stats interval set at initialisation.
+
+```js
+var statsInterval = q.getStatsInterval(); // returns the stats interval set at initialisation
+```
+
+#### Get qyu length
+
+Returns queue length.
+
+```js
+var length = q.qetQyuLength(); // returns queue length
+```
+
+#### Check if Qyu is started
+
+Returns a boolean, true if the queue has been started.
+
+```js
+var isStarted = q.isQyuStarted(); // returns a boolean, true if the queue has been started.
+```
+
+#### Get job priority
+
+Returns priority of a job.
+
+```js
+var priority = q.getJobPriority(); // returns priority of a job
+```
+
 

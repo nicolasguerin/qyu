@@ -1,6 +1,3 @@
-beforeEach(function() {
-
-});
 
 var assert = require('assert');
 var qyu = require('../qyu');
@@ -34,6 +31,21 @@ describe('Push()', function () {
 		assert.equal(id2, 2);
 		assert.equal(q.getJobPriority(2), 5);
 		assert.equal(q.getQyuLength(), 2);
+  	})
+});
+
+describe('PushTooLowPrio()', function () {
+	it('should push a job with too low priority, set priority to 10 and returns id', function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+		
+		var id1 = q.push(async function () {}, 15);
+		// Check id
+		assert.equal(id1, 1);
+		//Check prio
+		assert.equal(q.getJobPriority(1), 10);
   	})
 });
 
@@ -112,5 +124,39 @@ describe('StartTwice()', function () {
   		} catch (error) {
     		assert.equal(error,"Queue already started");
 		}
+  	})
+});
+
+describe('CancelJob()', function () {
+	it('should remove a job from the queue', async function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+
+		var id1 = q.push(async function () {}, 15);
+		// Check id
+		assert.equal(id1, 1);
+		assert.equal(q.getQyuLength(), 1);
+
+		q.cancel(1);
+		assert.equal(q.getQyuLength(), 0);
+  	})
+});
+
+describe('Error()', function () {
+	it('should send an error during job execution', async function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+
+		var id1 = q.push(async function () { throw new Error();}, 1);
+		await q.start();
+		// TO FIX
+		q.on('error', ({ id, error }) => {
+			console.log("erroor");
+			assert.equal(id, 1);
+		});
   	})
 });

@@ -1,17 +1,23 @@
+/**
+ * Qyu module.
+ * @module qyu
+ */
 
-// Import events module for signal
+/** Import events module for signal */
 var events = require('events');
-// Import util for inheritance
+/** Import util for inheritance */
 var util = require('util');
 
+/** Default values */
 const defaultRateLimit = 20;
 const defaultStatsInterval = 300;
 const defaultPriority = 5;
+const maxPriority = 10;
 
 /**
  * Qyu
  * @constructor
- * @param {object} 
+ * @param {object}  
  */
 function Qyu(opts){
   this.jobsQueue = [];
@@ -34,25 +40,49 @@ function Qyu(opts){
   }
 }
 
-// Add events methods to Qyu
+/** Add events methods to Qyu */
 util.inherits(Qyu, events.EventEmitter);
 
+
+/** Exported functions for Qyu control */
+
+/**
+ * Get rate limit
+ * @return {Number} max number of jobs processed at the same time
+ */
 Qyu.prototype.getRateLimit = function () {
   return this.rateLimit;
 }
 
+/**
+ * Get stats interval
+ * @return {Number} interval between stats update
+ */
 Qyu.prototype.getStatsInterval = function () {
   return this.statsIntervalDelay;
 }
 
+/**
+ * Get Qyu length
+ * @return {Number} queue length
+ */
 Qyu.prototype.getQyuLength = function () {
   return this.jobsQueue.length;
 }
 
-Qyu.prototype.isQueueStarted = function () {
-  return this.jobsQueue.length;
+/**
+ * Is Qyu started ?
+ * @return {Boolean} true if queue has been started, false otherwise
+ */
+Qyu.prototype.isQyuStarted = function () {
+  return this.isQueueStarted;
 }
 
+/**
+ * Get job priority
+ * @param {Number} job id  
+ * @return {Number} priority of job with this id
+ */
 Qyu.prototype.getJobPriority = function (id) {
   return this.jobsQueue.find(function(job) {
     return job.id === id;
@@ -95,8 +125,9 @@ Qyu.prototype.start = function () {
 
 /**
  * Push a new job to the queue
- *
- * @return {number} id of the job queued
+ * @param {object} a function to execute
+ * @param {Number} priority of the job - 1 is highest priority - 10 is max - 5 default when not specified 
+ * @return {Number} id of the job queued
  */
 Qyu.prototype.push = function (job, priority) {
   var prio;
@@ -107,14 +138,18 @@ Qyu.prototype.push = function (job, priority) {
   }
 
   if (typeof priority === 'number' && priority !== null) {
-    prio = priority;  
+    if(priority < maxPriority) {
+      prio = priority; 
+    } else {
+      prio = maxPriority;
+    }
   } else {
     prio = defaultPriority;
     console.log("Wrong format or no prio specified, setting to default (" + prio + ")");
   }
 
-  var id = _getId(this);
-  console.log("Pushing a new job with id " + id + " with priority "+ prio);
+  var id = _allocateNewId(this);
+  //console.log("Pushing a new job with id " + id + " with priority "+ prio);
 
   this.jobsQueue.push({
                         id:id,
@@ -134,33 +169,62 @@ Qyu.prototype.push = function (job, priority) {
 };*/
 
 
+/**
+ * Remove a job from the queue - job shouldn't have been executed
+ * @param {Number} job id to remove
+ */
 Qyu.prototype.cancel = function (id) {
-  console.log("Cancel job with id " + id);
+  var job = this.jobsQueue.find(function(job) { return job.id === id; });
+  var jobIndex = this.jobsQueue.indexOf(job);
+  if (jobIndex > -1) {
+    this.jobsQueue.splice(jobIndex, 1);
+  }
 };
 
 
-// Internal functions
+/** Internal functions */
 
-// Qyu stat update
+/**
+ * Start stats update
+ * @param {object} qyu instance
+ */
 function _startSendStats(qyu){
   qyu.statInterval = setInterval(() => {
     _updateStats(qyu);
   }, qyu.statsIntervalDelay);
 }
 
+/**
+ * Send stats update
+ * @param {object} qyu instance
+ */
 function _updateStats(qyu){
   qyu.emit('stats',({nbJobsPerSecond:4}));
 }
 
+/**
+ * Pause stats update
+ * @param {object} qyu instance
+ */
 function _pauseSendStats(qyu){
   clearInterval(qyu.statInterval); 
 }
 
-function _getId(qyu){
+/**
+ * Return a new unused ID
+ * @param {object} qyu instance
+ * @return {Number} a new id
+ */
+function _allocateNewId(qyu){
   qyu.ids++;
   return qyu.ids;
 }
 
+/**
+ * Compare job prio - used for sorting
+ * @param {Number} element A to compare
+ * @param {Number} element B to compare
+ */
 function _prioCompare(a,b) {
   if (a.prio < b.prio)
     return -1;
@@ -169,28 +233,36 @@ function _prioCompare(a,b) {
   return 0;
 }
 
-
+/**
+ * Process next job from the queue
+ * @param {object} qyu instance
+ */
 async function _processNext(qyu) {
   
   if(qyu.isQueueStarted){
     var job = qyu.jobsQueue.shift();
 
     if(!job && qyu.jobsQueue.length === 0){
+    
       console.log("No more job to process");
       qyu.emit('drain');
+    
     } else {
+    
        try {
         result = await job.func();
         console.log("Job " + job.id + " has been executed");
         qyu.emit('done', ({id:job.id, result:result}));
       } catch (err) {
-        console.log("Error during job " + job.id + " execution")
+        console.log("Error during job " + job.id + " execution");
         qyu.emit('error', ({id:job.id, error:err}));
       }
+
       _processNext(qyu);
+    
     }
   }
 };
 
-
+/** export */
 module.exports = Qyu;
