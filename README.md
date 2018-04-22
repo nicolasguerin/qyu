@@ -16,7 +16,7 @@ Install mocha
 npm install mocha
 ```
 
-Run unit test
+Run unit tests
 ```
 npm test
 ```
