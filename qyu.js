@@ -4,7 +4,7 @@ var events = require('events');
 // Import util for inheritance
 var util = require('util');
 
-const defaultRateLimit = 50;
+const defaultRateLimit = 20;
 const defaultStatsInterval = 300;
 const defaultPriority = 5;
 
@@ -37,6 +37,29 @@ function Qyu(opts){
 // Add events methods to Qyu
 util.inherits(Qyu, events.EventEmitter);
 
+Qyu.prototype.getRateLimit = function () {
+  return this.rateLimit;
+}
+
+Qyu.prototype.getStatsInterval = function () {
+  return this.statsIntervalDelay;
+}
+
+Qyu.prototype.getQyuLength = function () {
+  return this.jobsQueue.length;
+}
+
+Qyu.prototype.isQueueStarted = function () {
+  return this.jobsQueue.length;
+}
+
+Qyu.prototype.getJobPriority = function (id) {
+  return this.jobsQueue.find(function(job) {
+    return job.id === id;
+  }).prio;
+}
+
+
 /**
  * Pause queue - no new job execution
  * @return {Promise} resolved when queue has paused (no jobs being processed)
@@ -46,7 +69,7 @@ Qyu.prototype.pause = async function () {
   return new Promise((resolve, reject) => {
     _pauseSendStats(this);
     this.isQueueStarted = false;
-    resolve();
+    resolve("Qyu paused");
   });
 };
 
@@ -64,7 +87,7 @@ Qyu.prototype.start = function () {
       _startSendStats(this); 
       this.isQueueStarted = true;
       _processNext(this);
-      resolve();
+      resolve("Qyu started");
     }
   });
 };
@@ -80,7 +103,7 @@ Qyu.prototype.push = function (job, priority) {
 
   if(this.jobsQueue.length + 1 > this.rateLimit){
     console.log("Queue reached maximum capacity (" + this.rateLimit + ")");
-    return -1;
+    throw {code: 500, msg:"Queue reached maximum capacity"};
   }
 
   if (typeof priority === 'number' && priority !== null) {
@@ -106,9 +129,9 @@ Qyu.prototype.push = function (job, priority) {
   return id;
 };
 
-Qyu.prototype.wait = async function(id) {
+/*Qyu.prototype.wait = async function(id) {
  //return await ;
-};
+};*/
 
 
 Qyu.prototype.cancel = function (id) {
