@@ -14,7 +14,7 @@ var error = require('./error');
 const RATE_LIMIT_DEFAULT = 20;
 const STATS_INTERVAL_DEFAULT = 300;
 const PRIORITY_DEFAULT = 5;
-const MAX_PRIORITY = 10;
+const LOWEST_PRIORITY = 10;
 
 /**
  * Qyu
@@ -22,10 +22,13 @@ const MAX_PRIORITY = 10;
  * @param {object}  
  */
 function Qyu(opts){
+  // Associative array used to store jobs
   this.jobsQueue = [];
-  this.runningJobs = {};
+  // Counter for stats
   this.numberOfProcessedJobs = 0;
+  // Ids list to ensure unique id
   this.ids = 0;
+
   this.isQueueStarted = false;
   this.startDate;
 
@@ -33,14 +36,14 @@ function Qyu(opts){
     this.rateLimit = opts.rateLimit;
   } else {
     this.rateLimit = RATE_LIMIT_DEFAULT;
-    console.log("Wrong format for rateLimit, setting to default (" + this.rateLimit + ")");
+    console.info("Wrong format for rateLimit, setting to default (" + this.rateLimit + ")");
   }
 
   if (typeof opts.statsInterval === 'number' && opts.statsInterval !== null) {
     this.statsIntervalDelay = opts.statsInterval;
   } else {
     this.statsIntervalDelay = STATS_INTERVAL_DEFAULT;
-    console.log("Wrong format for statsInterval, setting to default (" + this.statsIntervalDelay + ")");
+    console.info("Wrong format for statsInterval, setting to default (" + this.statsIntervalDelay + ")");
   }
 }
 
@@ -67,7 +70,7 @@ Qyu.prototype.getStatsInterval = function () {
 }
 
 /**
- * Get Qyu length
+ * Get Qyu length - count keys into queue to compute length
  * @return {Number} queue length
  */
 Qyu.prototype.getQyuLength = function () {
@@ -143,24 +146,27 @@ Qyu.prototype.push = function (job, priority) {
 
   // Check if we do not go over the limit
   if(this.getQyuLength() + 1 > this.rateLimit){
-    console.log("Queue reached maximum capacity (" + this.rateLimit + ")");
+    console.warn("Queue reached maximum capacity (" + this.rateLimit + ")");
     throw new error.QyuMaxCapacityError();
   }
 
   // Set correct priority
   if (typeof priority === 'number' && priority !== null) {
-    if(priority > MAX_PRIORITY) {
-      priority = MAX_PRIORITY; 
+    if(priority > LOWEST_PRIORITY) {
+      priority = LOWEST_PRIORITY; 
     }
     prio = priority;
   } else {
     prio = PRIORITY_DEFAULT;
-    console.log("Wrong format or no prio specified, setting to default (" + prio + ")");
+    console.info("Wrong format or no prio specified, setting to default (" + prio + ")");
   }
 
   let id = _allocateNewId(this);
 
   // Push the job with its data to an associative array which store all job to process
+  // I could have used a usual array and sort it here. It would increase slightly performances.
+  // However, using an associative array here allow some flexibility like priority update at any time
+  // before job processing 
   this.jobsQueue[id] = {
                         id:id,
                         prio: prio,
@@ -187,7 +193,6 @@ Qyu.prototype.wait = async function(jobId) {
       });
   });
 };
-
 
 /**
  * Remove a job from the queue - job shouldn't have been executed
@@ -245,7 +250,7 @@ function _allocateNewId(qyu){
  * @return {object} job with highest prio
  */
 function _findByHighestPriority(jobsQueue) {
-  let lowestPrio = 10;
+  let highestPrioFound = LOWEST_PRIORITY;
   let job;
 
   for(var key in jobsQueue)
