@@ -134,7 +134,7 @@ describe('CancelJob()', function () {
 			  statsInterval: 2000 
 			});
 
-		var id1 = q.push(async function () {}, 15);
+		var id1 = q.push(async function () {}, 10);
 		// Check id
 		assert.equal(id1, 1);
 		assert.equal(q.getQyuLength(), 1);

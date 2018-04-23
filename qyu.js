@@ -39,7 +39,7 @@ function Qyu(opts){
   if (typeof opts.statsInterval === 'number' && opts.statsInterval !== null) {
     this.statsIntervalDelay = opts.statsInterval;
   } else {
-    this.statsIntervalDelay = STATS_INTERVAL_DEFAULT
+    this.statsIntervalDelay = STATS_INTERVAL_DEFAULT;
     console.log("Wrong format for statsInterval, setting to default (" + this.statsIntervalDelay + ")");
   }
 }
@@ -71,7 +71,7 @@ Qyu.prototype.getStatsInterval = function () {
  * @return {Number} queue length
  */
 Qyu.prototype.getQyuLength = function () {
-  return this.jobsQueue.length;
+  return Object.keys(this.jobsQueue).length;
 }
 
 /**
@@ -88,9 +88,7 @@ Qyu.prototype.isQyuStarted = function () {
  * @return {Number} priority of job with this id
  */
 Qyu.prototype.getJobPriority = function (id) {
-   let job = _findJobInQyuById(this,id);
-
-  return job.prio;
+   return this.jobsQueue[id].prio;
 }
 
 
@@ -136,7 +134,7 @@ Qyu.prototype.start = function () {
 Qyu.prototype.push = function (job, priority) {
   let prio;
 
-  if(this.jobsQueue.length + 1 > this.rateLimit){
+  if(this.getQyuLength() + 1 > this.rateLimit){
     console.log("Queue reached maximum capacity (" + this.rateLimit + ")");
     throw {code: 500, msg:"Queue reached maximum capacity"};
   }
@@ -189,13 +187,7 @@ Qyu.prototype.wait = async function(jobId) {
  * @param {Number} job id to remove
  */
 Qyu.prototype.cancel = function (id) {
-// FIXME KILL A PROMESS
-
-  let job = _findJobInQyuById(this,id);
-  let jobIndex = this.jobsQueue.indexOf(job);
-  if (jobIndex > -1) {
-    this.jobsQueue.splice(jobIndex, 1);
-  }
+  delete this.jobsQueue[id];
 };
 
 
