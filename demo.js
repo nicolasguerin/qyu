@@ -34,19 +34,14 @@ q.on('stats', ({ nbJobsPerSecond }) => {
 (async () => {
   const id1 = q.push(
     job, // function to execute
-    3,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
+    3   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
   ); // returns the internal id
 
-  const id2 = q.push(
-      job, // function to execute
-      5,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
-    ); // returns the internal id
-  const id3 = q.push(
-      job, // function to execute
-      1,   // optional priority, from 1 to 10, 1 being the highest priority - default: 5
-    ); // returns the internal id
+  const id2 = q.push(job);
+  const id3 = q.push(job, 1); 
+  const id4 = q.push(jobError, 4); // -> will trigger 'error' event
 
-  const id4 = q.push(jobError, 3);
+  // Expected order result is id3 - id1 - id4 - id2
 
   await q.pause(); // returns a promise resolved when `q` has paused (no jobs being processed)
   await q.start(); // returns a promise resolved when `q` has started (first time) or unpaused

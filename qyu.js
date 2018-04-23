@@ -158,7 +158,6 @@ Qyu.prototype.push = function (job, priority) {
     prio = priority;
   } else {
     prio = PRIORITY_DEFAULT;
-    console.info("Wrong format or no prio specified, setting to default (" + prio + ")");
   }
 
   let id = _allocateNewId(this);
@@ -250,14 +249,16 @@ function _allocateNewId(qyu){
  * @return {object} job with highest prio
  */
 function _findByHighestPriority(jobsQueue) {
+  // We want to find the highest prio (lowest value)
+  // We start assuming that the highest prio is the lowest possible one.
   let highestPrioFound = LOWEST_PRIORITY;
   let job;
 
   for(var key in jobsQueue)
   {
-    if(jobsQueue[key].prio < lowestPrio){
+    if(jobsQueue[key].prio < highestPrioFound){
       job = jobsQueue[key];
-      lowestPrio = job.prio;
+      highestPrioFound = job.prio;
     }
   }
   return job;
@@ -277,9 +278,11 @@ async function _processNext(qyu) {
       qyu.emit('drain');
 
     } else {
+      // look for the highest priority job to process
       let job = _findByHighestPriority(qyu.jobsQueue);
       if(job != undefined){
         try {
+          // Run the job
           qyu.jobsQueue[job.id].promise = job.func();
           qyu.jobsQueue[job.id].promise.then(function(result) {
             // Increase jobs processed counter
@@ -312,6 +315,7 @@ async function _processNext(qyu) {
           _processNext(qyu);
         }
       } else {
+        // Throw an error as something weird happened into the queue
         throw new error.QyuJobNotDefinedError();
       }
     }
