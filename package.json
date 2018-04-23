@@ -1,21 +1,20 @@
 {
-  "name": "qyu.js",
-  "description": "Queue library",
+  "name": "qyu",
+  "version": "0.1.0",
+  "author": "Nicolas Guerin",
+  "email": "nicolas.guerin@ymail.com",
+  "description": "In-memory queue library in JavaScript",
   "keywords": [
     "queue",
     "async"
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "https://github.com/"
-  },
-  "devDependencies": {
+    "url": "https://github.com/nicolasguerin/qyu"
   },
   "scripts": {
-    "build": "grunt",
     "test": "mocha"
   },
-  "version": "0.0.1",
   "main": "index.js"
 }
