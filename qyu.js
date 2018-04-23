@@ -183,14 +183,18 @@ Qyu.prototype.push = function (job, priority) {
  * @return {promise} resolves when the job is complete with the job result
  */
 Qyu.prototype.wait = async function(jobId) {
-  return new Promise((resolve,reject) => {
-    // Wait for the appropriate job to complete
-    this.on('done', ({ id, result }) => {
-        if(id === jobId){
-          resolve(result);
-        }
-      });
-  });
+  if(typeof jobId === 'number' && jobId !== null){
+    return new Promise((resolve,reject) => {
+      // Wait for the appropriate job to complete
+      this.on('done', ({ id, result }) => {
+          if(id === jobId){
+            resolve(result);
+          }
+        });
+    });
+  } else {
+    throw new error.QyuJobNotDefinedError();
+  }
 };
 
 /**

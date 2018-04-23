@@ -179,38 +179,3 @@ describe('Error()', function () {
   	})
 });
 
-describe('Drain()', function () {
-	it('should send a drain event when queue is empty', async function () {
-		const q = new qyu({
-			  rateLimit: 10,
-			  statsInterval: 2000 
-			});
-
-		q.on('drain', () => {
-			console.log(q.getQyuLength());
-			assert.equal(q.getQyuLength(), 0);
-		});
-
-		var id1 = q.push(async function () { throw new Error(); }, 1);
-		await q.start();
-  	})
-});
-
-describe('Done()', function () {
-	it('should send a done event when job is executed', async function () {
-		const q = new qyu({
-			  rateLimit: 10,
-			  statsInterval: 2000 
-			});
-
-		q.on('done', () => {
-			console.log(q.getQyuLength());
-			assert.equal(q.getQyuLength(), 0);
-		});
-
-		var id1 = q.push(async function () { }, 1);
-		assert.equal(q.getQyuLength(), 1);
-		await q.start();
-
-  	})
-});
