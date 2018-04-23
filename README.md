@@ -45,7 +45,7 @@ Qyu implementation is based on promises, meaning that a job will be processed an
 
 This is how Qyu is working :
 
-* At initialisation, an associative array is created to store jobs that will be pushed.
+* During initialisation, an associative array is created to store jobs that will be pushed.
 * When a job is pushed, a new object is created into the array, using job id as key:
 ```js
 this.jobsQueue[id] = {
@@ -66,6 +66,7 @@ this.jobsQueue[id] = {
 #### Create a Qyu
 
 How to import module, create and initialise a new 'Qyu'.
+
 It could take several parameters, otherwise values are set to default.
 
 * rateLimit (default value : 20) - Maximum number of jobs being processed at the same time
@@ -83,6 +84,7 @@ const q = new qyu({
 #### Pushing a job
 
 How to push any kind of function into the 'Qyu'. 
+
 It takes two parameters. Return value is a unique job id.
 
 * job (mandatory) - A function that will be asynchronously executed.
@@ -98,6 +100,7 @@ const id = q.push(
 #### Start the 'Qyu'
 
 How to start processing jobs that have been pushed into the 'Qyu'.
+
 It returns a promise resolved when 'q' has started (first time) or unpaused.
 
 ```js
@@ -107,6 +110,7 @@ await q.start(); // returns a promise resolved when `q` has started (first time)
 #### Pause the 'Qyu'
 
 How to pause jobs processing.
+
 It returns a promise resolved when 'q' has paused (no jobs being processed).
 
 ```js
@@ -116,6 +120,7 @@ await q.pause(); // returns a promise resolved when `q` has paused (no jobs bein
 #### Wait for a job to complete
 
 How to wait for a job to complete.
+
 A promise resolves when the job is complete with the job result.
 
 * job id (mandatory) - id of the job to wait for.
@@ -227,7 +232,7 @@ q.setJobPriority(jobId, newPrio);
 
 Creating custom errors allows a better identification in bad behaviour of the lib.
 
-    * QyuAlreadyStartedError : error thrown when trying to start qyu twice
-  	* QyuMaxCapacityError : error thrown when trying to push a job over the capacity limitation,
-  	* QyuJobNotDefinedError : error thrown when trying to process an undefined job,
-  	* QyuJobExecutionError : error thrown when an error occures during job execution.
+* QyuAlreadyStartedError : error thrown when trying to start qyu twice
+* QyuMaxCapacityError : error thrown when trying to push a job over the capacity limitation,
+* QyuJobNotDefinedError : error thrown when trying to process an undefined job,
+* QyuJobExecutionError : error thrown when an error occures during job execution.
