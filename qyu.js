@@ -8,11 +8,13 @@ var events = require('events');
 /** Import util for inheritance */
 var util = require('util');
 
+//var error = require('./error');
+
 /** Default values */
-const defaultRateLimit = 20;
-const defaultStatsInterval = 300;
-const defaultPriority = 5;
-const maxPriority = 10;
+const RATE_LIMIT_DEFAULT = 20;
+const STATS_INTERVAL_DEFAULT = 300;
+const PRIORITY_DEFAULT = 5;
+const MAX_PRIORITY = 10;
 
 /**
  * Qyu
@@ -21,6 +23,7 @@ const maxPriority = 10;
  */
 function Qyu(opts){
   this.jobsQueue = [];
+  this.runningJobs = {};
   this.numberOfProcessedJobs = 0;
   this.ids = 0;
   this.isQueueStarted = false;
@@ -29,14 +32,14 @@ function Qyu(opts){
   if (typeof opts.rateLimit === 'number' && opts.rateLimit !== null) {
     this.rateLimit = opts.rateLimit;
   } else {
-    this.rateLimit = defaultRateLimit;
+    this.rateLimit = RATE_LIMIT_DEFAULT;
     console.log("Wrong format for rateLimit, setting to default (" + this.rateLimit + ")");
   }
 
   if (typeof opts.statsInterval === 'number' && opts.statsInterval !== null) {
     this.statsIntervalDelay = opts.statsInterval;
   } else {
-    this.statsIntervalDelay = defaultStatsInterval
+    this.statsIntervalDelay = STATS_INTERVAL_DEFAULT
     console.log("Wrong format for statsInterval, setting to default (" + this.statsIntervalDelay + ")");
   }
 }
@@ -85,9 +88,9 @@ Qyu.prototype.isQyuStarted = function () {
  * @return {Number} priority of job with this id
  */
 Qyu.prototype.getJobPriority = function (id) {
-  return this.jobsQueue.find(function(job) {
-    return job.id === id;
-  }).prio;
+   let job = _findJobInQyuById(this,id);
+
+  return job.prio;
 }
 
 
@@ -131,7 +134,7 @@ Qyu.prototype.start = function () {
  * @return {Number} id of the job queued
  */
 Qyu.prototype.push = function (job, priority) {
-  var prio;
+  let prio;
 
   if(this.jobsQueue.length + 1 > this.rateLimit){
     console.log("Queue reached maximum capacity (" + this.rateLimit + ")");
@@ -139,35 +142,46 @@ Qyu.prototype.push = function (job, priority) {
   }
 
   if (typeof priority === 'number' && priority !== null) {
-    if(priority < maxPriority) {
-      prio = priority; 
-    } else {
-      prio = maxPriority;
+    if(priority > MAX_PRIORITY) {
+      priority = MAX_PRIORITY; 
     }
+    prio = priority;
+
   } else {
-    prio = defaultPriority;
+    prio = PRIORITY_DEFAULT;
     console.log("Wrong format or no prio specified, setting to default (" + prio + ")");
   }
 
-  var id = _allocateNewId(this);
+  let id = _allocateNewId(this);
   //console.log("Pushing a new job with id " + id + " with priority "+ prio);
 
-  this.jobsQueue.push({
+  this.jobsQueue[id] = {
                         id:id,
                         prio: prio,
                         func:job
-                      });
+                       };
 
-  this.jobsQueue.sort(_prioCompare);
+  //this.jobsQueue.sort(_prioCompare);
 
   _processNext(this);
 
   return id;
 };
 
-/*Qyu.prototype.wait = async function(id) {
- //return await ;
-};*/
+/**
+ * Wait for a job to complete
+ * @param {Number} job id to wait for
+ * @return {promise} resolves when the job is complete with the job result
+ */
+Qyu.prototype.wait = async function(jobId) {
+  return new Promise((resolve,reject) => {
+    this.on('done', ({ id, result }) => {
+        if(id ===jobId){
+          resolve(result);
+        }
+      });
+  });
+};
 
 
 /**
@@ -175,8 +189,10 @@ Qyu.prototype.push = function (job, priority) {
  * @param {Number} job id to remove
  */
 Qyu.prototype.cancel = function (id) {
-  var job = this.jobsQueue.find(function(job) { return job.id === id; });
-  var jobIndex = this.jobsQueue.indexOf(job);
+// FIXME KILL A PROMESS
+
+  let job = _findJobInQyuById(this,id);
+  let jobIndex = this.jobsQueue.indexOf(job);
   if (jobIndex > -1) {
     this.jobsQueue.splice(jobIndex, 1);
   }
@@ -201,12 +217,9 @@ function _startSendStats(qyu){
  * @param {object} qyu instance
  */
 function _updateStats(qyu){
-  var duration = new Date() - qyu.startDate;
-  console.log("duration " + duration + " number " +qyu.numberOfProcessedJobs);
-  var nbJobsPerSecond = qyu.numberOfProcessedJobs / (duration / 1000);
-
+  let duration = new Date() - qyu.startDate;
+  let nbJobsPerSecond = qyu.numberOfProcessedJobs / (duration / 1000);
   qyu.emit('stats',({nbJobsPerSecond: nbJobsPerSecond }));
-
 }
 
 /**
@@ -232,13 +245,20 @@ function _allocateNewId(qyu){
  * @param {Number} element A to compare
  * @param {Number} element B to compare
  */
-function _prioCompare(a,b) {
-  if (a.prio < b.prio)
-    return -1;
-  if (a.prio > b.prio)
-    return 1;
-  return 0;
+function _findByHighestPriority(jobsQueue) {
+  let lowestPrio = 10;
+  let job;
+
+  for(var key in jobsQueue)
+  {
+    if(jobsQueue[key].prio < lowestPrio){
+      job = jobsQueue[key];
+      lowestPrio = job.prio;
+    }
+  }
+  return job;
 }
+
 
 /**
  * Process next job from the queue
@@ -247,27 +267,32 @@ function _prioCompare(a,b) {
 async function _processNext(qyu) {
   
   if(qyu.isQueueStarted){
-    var job = qyu.jobsQueue.shift();
+    
 
-    if(!job && qyu.jobsQueue.length === 0){
+    if(qyu.jobsQueue.length === 0){
     
       console.log("No more job to process");
       qyu.emit('drain');
     
     } else {
-    
-       try {
-        result = await job.func();
-        qyu.numberOfProcessedJobs++;
-        console.log("Job " + job.id + " has been executed");
-        qyu.emit('done', ({id:job.id, result:result}));
-      } catch (err) {
-        console.log("Error during job " + job.id + " execution");
-        qyu.emit('error', ({id:job.id, error:err}));
-      }
+      let job = _findByHighestPriority(qyu.jobsQueue);
+      if(job != undefined){
 
-      _processNext(qyu);
-    
+        qyu.jobsQueue[job.id].promise = job.func();
+
+        qyu.jobsQueue[job.id].promise.then(function(result) {
+          qyu.numberOfProcessedJobs++;
+          qyu.emit('done', ({id:job.id, result:result}));
+          delete qyu.jobsQueue[job.id];
+          _processNext(qyu);
+        }).catch(function(error){
+          qyu.emit('error', ({id:job.id, error:error}));
+          _processNext(qyu);
+        } );
+      } else {
+        //throw new Error();
+      }
+      
     }
   }
 };

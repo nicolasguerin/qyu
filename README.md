@@ -22,6 +22,10 @@ Run unit tests
 npm test
 ```
 
+## How it works
+
+balbalablabaabaal explain push and process next
+
 ## API description
 
 ### Initialisation and control

@@ -151,12 +151,11 @@ describe('Error()', function () {
 			  statsInterval: 2000 
 			});
 
-		var id1 = q.push(async function () { throw new Error();}, 1);
-		await q.start();
-		// TO FIX
 		q.on('error', ({ id, error }) => {
-			console.log("erroor");
 			assert.equal(id, 1);
 		});
+
+		var id1 = q.push(async function () { throw new Error();}, 1);
+		await q.start();
   	})
 });

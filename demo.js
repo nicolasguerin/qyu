@@ -45,7 +45,8 @@ q.on('stats', ({ nbJobsPerSecond }) => {
   await q.pause(); // returns a promise resolved when `q` has paused (no jobs being processed)
   await q.start(); // returns a promise resolved when `q` has started (first time) or unpaused
 
-// const res = await q.wait(id); // resolves when the job is complete with the job result
+ const res = await q.wait(id2); // resolves when the job is complete with the job result
+ console.log("await for result is : " + res.Hello);
 })();
 
 
