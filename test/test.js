@@ -1,6 +1,7 @@
 
 var assert = require('assert');
 var qyu = require('../qyu');
+var error = require('../error');
 
 describe('new qyu()', function () {
 	it('should initiliase Qyu module', function () {
@@ -49,6 +50,23 @@ describe('PushTooLowPrio()', function () {
   	})
 });
 
+describe('ChangePrio()', function () {
+	it('should change the priority of a job', function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+		
+		var id1 = q.push(async function () {}, 8);
+		// Check id
+		assert.equal(id1, 1);
+		//Check prio
+		assert.equal(q.getJobPriority(1), 8);
+		q.setJobPriority(1,2);
+		assert.equal(q.getJobPriority(1), 2);
+  	})
+});
+
 describe('PushLimit()', function () {
 	it('should refuse to push job after the limit', async function () {
 		const q = new qyu({
@@ -62,7 +80,7 @@ describe('PushLimit()', function () {
 				q.push(async function () {}, 6);
 				count++;
 			}catch (error){
-				assert.equal(error.code, 500);
+				assert.equal(error.code, "ERR_QYU_MAX_CAPACITY");
 				break;
 			}
 		}
@@ -77,7 +95,7 @@ describe('Start()', function () {
 			  statsInterval: 2000 
 			});
 		const result = await q.start();
-  		assert.equal(result,"Qyu started"); 
+  		assert.equal(result,"Qyu started");
   	})
 });
 
@@ -121,8 +139,8 @@ describe('StartTwice()', function () {
 
   		try {
   			const resultReStart = await q.start();
-  		} catch (error) {
-    		assert.equal(error,"Queue already started");
+  		} catch (err) {
+    		assert.equal(err.code,"ERR_QYU_ALREADY_STARTED");
 		}
   	})
 });
@@ -153,9 +171,46 @@ describe('Error()', function () {
 
 		q.on('error', ({ id, error }) => {
 			assert.equal(id, 1);
+			assert.equal(error.code,"ERR_QYU_JOB_EXECUTION");
 		});
 
-		var id1 = q.push(async function () { throw new Error();}, 1);
+		var id1 = q.push(async function () { throw new Error(); }, 1);
 		await q.start();
+  	})
+});
+
+describe('Drain()', function () {
+	it('should send a drain event when queue is empty', async function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+
+		q.on('drain', () => {
+			console.log(q.getQyuLength());
+			assert.equal(q.getQyuLength(), 0);
+		});
+
+		var id1 = q.push(async function () { throw new Error(); }, 1);
+		await q.start();
+  	})
+});
+
+describe('Done()', function () {
+	it('should send a done event when job is executed', async function () {
+		const q = new qyu({
+			  rateLimit: 10,
+			  statsInterval: 2000 
+			});
+
+		q.on('done', () => {
+			console.log(q.getQyuLength());
+			assert.equal(q.getQyuLength(), 0);
+		});
+
+		var id1 = q.push(async function () { }, 1);
+		assert.equal(q.getQyuLength(), 1);
+		await q.start();
+
   	})
 });
