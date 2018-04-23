@@ -76,8 +76,8 @@ It could take several parameters, otherwise values are set to default.
 const qyu = require('./qyu');
 
 const q = new qyu({
-  rateLimit: 10, // maximum number of jobs being processed at the same time
-  statsInterval: 2000 // When stat event is sent, in ms
+  rateLimit: 20, // maximum number of jobs being processed at the same time
+  statsInterval: 300 // When stat event is sent, in ms
 });
 ```
 
