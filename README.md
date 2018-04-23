@@ -10,7 +10,7 @@ You can use demo.js as an example.
 - [API description](#api-description)
 - [Qyu events](#qyu-events)
 - [Qyu data exposed](#qyu-data-exposed)
-- [Qyu custom errors](#qyu-custom-erros)
+- [Qyu custom errors](#qyu-custom-errors)
 
 
 ## Installation
@@ -44,8 +44,9 @@ node demo.js
 Qyu implementation is based on promises, meaning that a job will be processed and a promise will be resolved with the job result when execution completed.
 
 This is how Qyu is working :
-	* At initialisation, an associative array is created to store jobs that will be pushed.
-	* When a job is pushed, a new object is created into the array, using job id as key:
+
+* At initialisation, an associative array is created to store jobs that will be pushed.
+* When a job is pushed, a new object is created into the array, using job id as key:
 ```js
 this.jobsQueue[id] = {
                 id:id,
@@ -53,10 +54,10 @@ this.jobsQueue[id] = {
                 func:job    // the job to execute
                };
 ```
-	* When Qyu is started, jobs started to be processed via an async function `_processNext`.
-	* A promise is created with job execution, which will resolve when job completes its execution. Then the `done` event is emitted and a new call to `_processNext` is done to execute the next job.
-	* If queue is empty, the `drain` event is emitted, otherwise it continues.
-	
+* When Qyu is started, jobs started to be processed via an async function `_processNext`.
+* A promise is created with job execution, which will resolve when job completes its execution. Then the `done` event is emitted and a new call to `_processNext` is done to execute the next job.
+* If queue is empty, the `drain` event is emitted, otherwise it continues.
+
 
 ## API description
 
