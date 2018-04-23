@@ -3,6 +3,16 @@
 In-memory queue library in JavaScript, with maximum processing jobs limit and recurrent stats.
 You can use demo.js as an example.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [General description](#general-description)
+- [API description](#api-description)
+- [Qyu events](#qyu-events)
+- [Qyu data exposed](#qyu-data-exposed)
+- [Qyu custom errors](#qyu-custom-erros)
+
+
 ## Installation
 
 ### Qyu library
@@ -22,9 +32,31 @@ Run unit tests
 npm test
 ```
 
-## How it works
+### Test using demo.js
 
-balbalablabaabaal explain push and process next
+```
+node demo.js
+```
+
+
+## General description
+
+Qyu implementation is based on promises, meaning that a job will be processed and a promise will be resolved with the job result when execution completed.
+
+This is how Qyu is working :
+	* At initialisation, an associative array is created to store jobs that will be pushed.
+	* When a job is pushed, a new object is created into the array, using job id as key:
+```js
+this.jobsQueue[id] = {
+                id:id,
+                prio: prio, // priority
+                func:job    // the job to execute
+               };
+```
+	* When Qyu is started, jobs started to be processed via an async function `_processNext`.
+	* A promise is created with job execution, which will resolve when job completes its execution. Then the `done` event is emitted and a new call to `_processNext` is done to execute the next job.
+	* If queue is empty, the `drain` event is emitted, otherwise it continues.
+	
 
 ## API description
 
@@ -84,6 +116,8 @@ await q.pause(); // returns a promise resolved when `q` has paused (no jobs bein
 
 How to wait for a job to complete.
 A promise resolves when the job is complete with the job result.
+
+* job id (mandatory) - id of the job to wait for.
 
 ```js
 const res = await q.wait(id); // resolves when the job is complete with the job result
@@ -157,7 +191,7 @@ var statsInterval = q.getStatsInterval(); // returns the stats interval set at i
 Returns queue length.
 
 ```js
-var length = q.qetQyuLength(); // returns queue length
+var length = q.getQyuLength(); // returns queue length
 ```
 
 #### Check if Qyu is started
@@ -176,4 +210,23 @@ Returns priority of a job.
 var priority = q.getJobPriority(); // returns priority of a job
 ```
 
+#### Set job priority
 
+Set a new priority to a job.
+
+* job id (mandatory)
+* priority (mandatory) - new prority to set
+
+```js
+q.setJobPriority(jobId, newPrio);
+```
+
+
+### Qyu custom errors
+
+Creating custom errors allows a better identification in bad behaviour of the lib.
+
+    * QyuAlreadyStartedError : error thrown when trying to start qyu twice
+  	* QyuMaxCapacityError : error thrown when trying to push a job over the capacity limitation,
+  	* QyuJobNotDefinedError : error thrown when trying to process an undefined job,
+  	* QyuJobExecutionError : error thrown when an error occures during job execution.
